@@ -12,7 +12,7 @@ import pronostico
 # ── Configuración de página ───────────────────────────────────────────────────
 st.set_page_config(
     page_title="Pronóstico de Demanda",
-    page_icon="📦",
+    page_icon="logo_Pancracio.png",
     layout="wide"
 )
 
@@ -257,3 +257,4 @@ if archivo:
             except Exception as e:
                 st.error(f"Error: {e}")
                 st.exception(e)
+
