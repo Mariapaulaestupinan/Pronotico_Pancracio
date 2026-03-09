@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import io
+import json
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
@@ -20,12 +21,10 @@ DRIVE_FOLDER_ID = "1nQYLs0eJmuDrXr7jeyGCuZS2wXRUnu3s"
 WORK_DIR        = pronostico.LOCAL_DIR   # /tmp/pronostico
 
 # ── Archivos según su ubicación en Drive ─────────────────────────────────────
-# Raíz de la carpeta Drive
 ARCHIVOS_RAIZ = [
     "historico_ventas.csv",
 ]
 
-# Subcarpeta modelos/ dentro de la carpeta raíz
 ARCHIVOS_MODELOS = [
     "historico_pareto.csv",
     "mae_por_serie.json",
@@ -42,7 +41,6 @@ ARCHIVOS_MODELOS = [
     "modelos_serie_inter.pkl",
 ]
 
-# De estos, cuáles se actualizan tras procesar datos nuevos
 ACTUALIZAR_RAIZ = [
     "historico_ventas.csv",
 ]
@@ -68,7 +66,7 @@ ACTUALIZAR_MODELOS = [
 @st.cache_resource
 def get_drive_service():
     creds = service_account.Credentials.from_service_account_info(
-        st.secrets["GOOGLE_CREDENTIALS"],
+        st.secrets["google_credentials"],
         scopes=["https://www.googleapis.com/auth/drive"]
     )
     return build("drive", "v3", credentials=creds)
@@ -131,11 +129,10 @@ def descargar_modelos():
     - Raíz del Drive   → ARCHIVOS_RAIZ
     - Subcarpeta modelos/ → ARCHIVOS_MODELOS
     """
-    service    = get_drive_service()
-    faltantes  = []
+    service   = get_drive_service()
+    faltantes = []
 
-    # Archivos en la raíz
-    arch_raiz  = listar_archivos(service, DRIVE_FOLDER_ID)
+    arch_raiz = listar_archivos(service, DRIVE_FOLDER_ID)
     for nombre in ARCHIVOS_RAIZ:
         dest = os.path.join(WORK_DIR, nombre)
         if nombre in arch_raiz:
@@ -143,7 +140,6 @@ def descargar_modelos():
         else:
             faltantes.append(nombre)
 
-    # Buscar subcarpeta modelos/ automáticamente
     modelos_id = buscar_subcarpeta(service, "modelos", DRIVE_FOLDER_ID)
     if modelos_id is None:
         faltantes.extend(ARCHIVOS_MODELOS)
@@ -166,8 +162,8 @@ def descargar_modelos():
 
 def subir_actualizados(service):
     """Sube al Drive los archivos que fueron modificados por cargar_nuevos_datos."""
-    arch_raiz    = listar_archivos(service, DRIVE_FOLDER_ID)
-    modelos_id   = buscar_subcarpeta(service, "modelos", DRIVE_FOLDER_ID)
+    arch_raiz  = listar_archivos(service, DRIVE_FOLDER_ID)
+    modelos_id = buscar_subcarpeta(service, "modelos", DRIVE_FOLDER_ID)
     arch_modelos = listar_archivos(service, modelos_id) if modelos_id else {}
 
     for nombre in ACTUALIZAR_RAIZ:
@@ -189,7 +185,6 @@ def subir_actualizados(service):
 st.title("📦 Pronóstico de Demanda")
 st.markdown("---")
 
-# Descargar modelos al iniciar
 with st.spinner("Cargando modelos desde Google Drive..."):
     faltantes = descargar_modelos()
     if faltantes:
@@ -199,7 +194,6 @@ with st.spinner("Cargando modelos desde Google Drive..."):
 
 st.markdown("---")
 
-# ── Subir archivo de ventas ───────────────────────────────────────────────────
 st.subheader("📂 Subir archivo de ventas")
 archivo = st.file_uploader("Sube el Excel con las ventas nuevas", type=["xlsx", "xls"])
 
@@ -209,15 +203,12 @@ if archivo:
     if st.button("▶️ Procesar y generar pronóstico", type="primary"):
         with st.spinner("Procesando... esto puede tardar unos minutos."):
             try:
-                # Guardar archivo subido en disco temporal
                 tmp_input = os.path.join(WORK_DIR, archivo.name)
                 with open(tmp_input, "wb") as f:
                     f.write(archivo.read())
 
-                # Ejecutar pipeline completo
                 df_forecast = pronostico.cargar_nuevos_datos(tmp_input, verbose=False)
 
-                # ── Resumen de confiabilidad ──────────────────────────────────
                 st.markdown("---")
                 st.subheader("Resumen de confiabilidad")
                 vc = df_forecast['Confiabilidad'].value_counts()
@@ -230,7 +221,6 @@ if archivo:
                 for nivel, (emoji, col) in niveles.items():
                     col.metric(label=f"{emoji} {nivel}", value=int(vc.get(nivel, 0)))
 
-                # ── Tabla de pronóstico ───────────────────────────────────────
                 st.subheader("Pronóstico semanal")
 
                 def color_fila(row):
@@ -246,8 +236,6 @@ if archivo:
                     height=450
                 )
 
-                # ── Descargar Excel ───────────────────────────────────────────
-                # Buscar el Excel generado por pronostico.py en WORK_DIR
                 excels = [f for f in os.listdir(WORK_DIR)
                           if f.startswith("pronostico_") and f.endswith(".xlsx")]
                 if excels:
@@ -260,7 +248,6 @@ if archivo:
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
 
-                # ── Subir archivos actualizados a Drive ───────────────────────
                 with st.spinner("Guardando cambios en Google Drive..."):
                     service = get_drive_service()
                     subir_actualizados(service)
