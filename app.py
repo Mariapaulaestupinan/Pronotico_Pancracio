@@ -182,7 +182,8 @@ def subir_actualizados(service):
 # UI
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.title("📦 Pronóstico de Demanda")
+st.image("logo_Pancracio.png", width=80)
+st.title("Pronóstico de Demanda")
 st.markdown("---")
 
 with st.spinner("Cargando modelos desde Google Drive..."):
@@ -257,4 +258,5 @@ if archivo:
             except Exception as e:
                 st.error(f"Error: {e}")
                 st.exception(e)
+
 
