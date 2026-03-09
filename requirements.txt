@@ -1,0 +1,16 @@
+streamlit
+pandas
+numpy
+scikit-learn
+xgboost
+statsforecast
+statsmodels
+prophet
+openpyxl
+joblib
+gdown
+matplotlib
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
