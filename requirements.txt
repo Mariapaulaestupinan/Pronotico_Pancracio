@@ -14,3 +14,4 @@ google-auth
 google-auth-oauthlib
 google-auth-httplib2
 google-api-python-client
+pystan==2.19.1.1
