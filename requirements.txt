@@ -3,7 +3,7 @@ scipy==1.13.1
 pandas
 numpy
 scikit-learn
-xgboost
+xgboost==3.2.0
 statsforecast
 statsmodels
 openpyxl
@@ -14,3 +14,4 @@ google-auth
 google-auth-oauthlib
 google-auth-httplib2
 google-api-python-client
+
