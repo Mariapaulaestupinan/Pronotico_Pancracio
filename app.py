@@ -253,14 +253,19 @@ if archivo:
                         )
 
                 with st.spinner("Guardando cambios en Google Drive..."):
-                    service = get_drive_service()
-                    subir_actualizados(service)
+                    # Crear conexión fresca, no usar la cacheada
+                    creds = service_account.Credentials.from_service_account_info(
+                        st.secrets["google_credentials"],
+                        scopes=["https://www.googleapis.com/auth/drive"])
+                    service_fresh = build("drive", "v3", credentials=creds)
+                    subir_actualizados(service_fresh)
 
                 st.success("✅ Pronóstico generado y modelos actualizados en Drive.")
 
             except Exception as e:
                 st.error(f"Error: {e}")
                 st.exception(e)
+
 
 
 
