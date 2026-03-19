@@ -282,7 +282,26 @@ def _crear_features_inter(df_in):
 
     return agregar_sba(df)
 
+# ══════════════════════════════════════════════════════════════════════════════
+# STACK MANUAL (necesario para deserializar stack_reg.pkl)
+# ══════════════════════════════════════════════════════════════════════════════
 
+class StackManual:
+    """
+    Reemplaza StackingRegressor. Permite sample_weight en fit y warm-start.
+    Debe estar definido aquí para que joblib.load() pueda reconstruir el pkl.
+    """
+    def __init__(self, rf, xgb, meta, feature_names):
+        self.rf_           = rf
+        self.xgb_          = xgb
+        self.meta_         = meta
+        self.feature_names = feature_names
+        self.named_estimators_ = {'rf': rf, 'xgb': xgb}
+
+    def predict(self, X):
+        X_arr  = X.values if hasattr(X, 'values') else np.array(X)
+        meta_X = np.column_stack([self.rf_.predict(X), self.xgb_.predict(X), X_arr])
+        return np.maximum(self.meta_.predict(meta_X), 0)
 # ══════════════════════════════════════════════════════════════════════════════
 # CARGA DE MODELOS
 # ══════════════════════════════════════════════════════════════════════════════
